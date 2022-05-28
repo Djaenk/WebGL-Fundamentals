@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<canvas id="gl-canvas" width="512"" height="512"></canvas>
+
+<script id="vertex-texture" type="x-shader/x-vertex">
+#version 300 es
+
+in vec4 a_position;
+in vec2 a_texcoord;
+ 
+uniform mat4 worldMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 projectionMatrix;
+
+// a varying to pass the texture coordinates to the fragment shader
+out vec2 v_texcoord;
+ 
+void main() {
+  gl_Position = projectionMatrix * viewMatrix * worldMatrix * aPosition;
+ 
+  // Pass the texcoord to the fragment shader.
+  v_texcoord = a_texcoord;
+}
+</script>
+
+<script id="fragment-texture" type="x-shader/x-vertex">
+#version 300 es
+precision highp float;
+ 
+// Passed in from the vertex shader.
+in vec2 v_texcoord;
+ 
+// The texture.
+uniform sampler2D u_texture;
+ 
+out vec4 outColor;
+ 
+void main() {
+   outColor = texture(u_texture, v_texcoord);
+}
+</script>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+#version 300 es
+
+in vec4 aPosition;
+in vec4 aNormal;
+out vec3 N, L, E;
+
+uniform mat4 worldMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 projectionMatrix;
+
+uniform vec4 uLightPosition;
+uniform mat3 uNormalMatrix;
+
+void main()
+{
+    vec3 pos = (viewMatrix * worldMatrix * aPosition).xyz;
+    if(uLightPosition.z == 0.0)  
+        L = normalize(uLightPosition.xyz);
+    else  
+        L = normalize(uLightPosition).xyz - pos;
+    E =  -normalize(pos);
+    N = normalize(uNormalMatrix * aNormal.xyz);
+    gl_Position = projectionMatrix * viewMatrix * worldMatrix * aPosition;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+#version 300 es
+
+precision mediump float;
+
+uniform vec4 uAmbientProduct;
+uniform vec4 uDiffuseProduct;
+uniform vec4 uSpecularProduct;
+uniform float uShininess;
+
+in vec3 N, L, E;
+out vec4 fColor;
+
+void main()
+{
+    vec3 H = normalize( L + E );
+    vec4 ambient = uAmbientProduct;
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*uDiffuseProduct;
+
+    float Ks = pow( max(dot(N, H), 0.0), uShininess );
+    vec4  specular = Ks * uSpecularProduct;
+
+    if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
+
+    fColor = ambient + diffuse +specular;
+    fColor.a = 1.0;
+}
+</script>
+
+<script src="../Common/initShaders.js"></script>
+<script src="../Common/MVnew.js"></script>
+<script src="../Common/flatten.js"></script>
+<script src="CG_S22_Program3_WangAnthony.js"></script>
+
+<div>
+Camera theta: -180° <input id="theta" type="range"
+ min="-180" max="180" step="1" value="0"
+  />
+ 180°
+</div><br/>
+
+<div>
+Camera phi: -90° <input id="phi" type="range"
+ min="-90" max="90" step="1" value="0"
+  />
+ 90°
+</div><br/>
+
+<div>
+Light theta: -180° <input id="I_theta" type="range"
+ min="-180" max="180" step="1" value="0"
+  />
+ 180°
+</div><br/>
+
+<div>
+Light Y position: -50 <input id="I_y" type="range"
+ min="-90" max="90" step="1" value="0"
+  />
+ 50
+</div><br/>
+
+<button id="move">Toggle Animation</button>
+
+<div>
+Animation Speed<input id="speed" type="range"
+ min="1" max="100" step="1" value="20"
+  />
+</div><br/>
+</body>
+</html>

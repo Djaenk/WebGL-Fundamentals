@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+#version 300 es
+
+in  vec4 aPosition;
+in  vec4 aColor;
+out vec4 vColor;
+
+uniform mat4 uModelViewMatrix;
+
+void main()
+{
+    gl_Position = uModelViewMatrix * aPosition;
+    vColor = aColor;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+#version 300 es
+
+precision mediump float;
+
+in vec4 vColor;
+out vec4 fColor;
+
+void
+main()
+{
+    fColor = vColor;
+}
+</script>
+
+<script src="../Common/initShaders.js"></script>
+<script src="../Common/MVnew.js"></script>
+<script src="CG_S22_HW2_HeightMesh_AnthonyWang.js"></script>
+
+<body>
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+
+<br/>
+
+<button id = "ButtonAxes">Toggle Axes</button>
+<div>
+    Camera X Position <input id="XSlider" type="range"
+     min="-1.0" max="1.0" step="0.01" value="-1.0" />
+</div>
+<div>
+    Camera Z Position <input id="ZSlider" type="range"
+     min="-1.0" max="1.0" step="0.01" value="-1.0" />
+</div>
+<div>
+    Camera Y Position <input id="YSlider" type="range"
+     min="-1.0" max="1.0" step="0.01" value="-1.0" />
+</div>
+
+</body>
+
+</html>

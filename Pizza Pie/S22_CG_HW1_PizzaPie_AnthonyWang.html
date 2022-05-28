@@ -1,0 +1,191 @@
+
+<html>
+
+<!-- VERTEX SHADER SOURCE CODE: Written in GLSL -->
+<script id="vertex-shader" type="x-shader/x-vertex">
+    #version 300 es
+
+    in vec4 aPosition;
+    in vec4 aColor;
+    out vec4 vColor;
+    void main()
+    {
+        gl_Position = aPosition;
+        gl_PointSize = 20.0;
+        vColor = aColor;
+    }
+</script>
+
+<!-- FRAGMENT SHADER SOURCE CODE: Written in GLSL -->
+<script id="fragment-shader" type="x-shader/x-fragment">
+    #version 300 es
+    precision mediump float;
+
+    in vec4 vColor;
+    out vec4 fColor;
+
+    void main()
+    {
+        fColor = vColor;
+    }
+</script>
+
+<canvas id="gl-canvas" width="512" height="512"> </canvas>
+
+<!-- Written in Javascript -->
+<script>
+
+// Globals for graphics
+var canvas;
+var gl;
+var program;
+var points;
+
+// This compiles and links the shaders to create a GPU program object
+// The GLSL code above is parsed and provided as the source code
+function initShaders( gl, vertexShaderId, fragmentShaderId )
+{
+    var vertShdr;
+    var fragShdr;
+
+    var vertElem = document.getElementById( vertexShaderId );
+    if ( !vertElem ) {
+        alert( "Unable to load vertex shader " + vertexShaderId );
+        return -1;
+    }
+    else {
+        vertShdr = gl.createShader( gl.VERTEX_SHADER );
+        gl.shaderSource( vertShdr, vertElem.textContent.replace(/^\s+|\s+$/g, '' ));
+        gl.compileShader( vertShdr );
+        if ( !gl.getShaderParameter(vertShdr, gl.COMPILE_STATUS) ) {
+            var msg = "Vertex shader failed to compile.  The error log is:"
+        	+ "<pre>" + gl.getShaderInfoLog( vertShdr ) + "</pre>";
+            alert( msg );
+            return -1;
+        }
+    }
+
+    var fragElem = document.getElementById( fragmentShaderId );
+    if ( !fragElem ) {
+        alert( "Unable to load vertex shader " + fragmentShaderId );
+        return -1;
+    }
+    else {
+        fragShdr = gl.createShader( gl.FRAGMENT_SHADER );
+        gl.shaderSource( fragShdr, fragElem.textContent.replace(/^\s+|\s+$/g, '' ) );
+        gl.compileShader( fragShdr );
+        if ( !gl.getShaderParameter(fragShdr, gl.COMPILE_STATUS) ) {
+            var msg = "Fragment shader failed to compile.  The error log is:"
+        	+ "<pre>" + gl.getShaderInfoLog( fragShdr ) + "</pre>";
+            alert( msg );
+            return -1;
+        }
+    }
+
+    var program = gl.createProgram();
+    gl.attachShader( program, vertShdr );
+    gl.attachShader( program, fragShdr );
+    gl.linkProgram( program );
+
+    if ( !gl.getProgramParameter(program, gl.LINK_STATUS) ) {
+        var msg = "Shader program failed to link.  The error log is:"
+            + "<pre>" + gl.getProgramInfoLog( program ) + "</pre>";
+        alert( msg );
+        return -1;
+    }
+
+    return program;
+}
+
+function initializePoints()
+{
+    let steps = 20;
+
+    let r = 0.9;
+    cheese = [0.0, 0.0, 1, 1, 0];
+    for(let i = 0.0; i < 1; i += 1/steps){
+        cheese.push(r * Math.cos(i * 2 * Math.PI), r * Math.sin(i * 2 * Math.PI), 1, 1, 0)
+    }
+    cheese.push(r, 0, 1, 1, 0)
+
+    let r1 = 0.8;
+    crust = [];
+    for(let i = 0.0; i < 1; i += 1/steps){
+        crust.push(r1 * Math.cos(i * 2 * Math.PI), r1 * Math.sin(i * 2 * Math.PI), .6, .2, .2)
+        crust.push(r * Math.cos(i * 2 * Math.PI), r * Math.sin(i * 2 * Math.PI), .6, .2, .2)
+    }
+    crust.push(r1, 0, .6, .2, .2)
+    crust.push(r, 0, .6, .2, .2)
+
+    olives = [
+        0.5, 0.0, 0, 0, 0,
+        -0.3, 0.6, 0, 0, 0,
+        0.1, -0.4, 0, 0, 0
+    ];
+
+    mushrooms = [
+        -0.2, -0.2, 0.3, 0.3, 0.3,
+        0.4, 0.5, 0.3, 0.3, 0.3,
+        -0.7, -0.1, 0.3, 0.3, 0.3
+    ];
+
+    pepperonis = [
+        -0.5, .2, 0.9, 0, 0,
+        0.4, -0.4, 0.9, 0, 0,
+        0.2, 0.1, 0.9, 0, 0
+    ];
+
+    points = new Float32Array([].concat(cheese, crust, olives, mushrooms, pepperonis));
+}
+
+
+// Move Data from CPU to GPU : This code defines vertices that describe the shape we want to draw
+function initializeGPUBuffers() 
+{
+    var pointsBuffer = gl.createBuffer();
+    gl.bindBuffer( gl.ARRAY_BUFFER, pointsBuffer );
+    gl.bufferData( gl.ARRAY_BUFFER, points, gl.STATIC_DRAW );  
+    
+    // Associate out shader variables with our data buffer
+    var aPosition = gl.getAttribLocation( program, "aPosition" );
+    gl.vertexAttribPointer( aPosition, 2, gl.FLOAT, false, 5 * Float32Array.BYTES_PER_ELEMENT, 0);    // (x,y) floating point values provided
+    gl.enableVertexAttribArray( aPosition );  
+    
+       // Associate out shader variables with our data buffer
+    var aColor = gl.getAttribLocation( program, "aColor" );
+    gl.vertexAttribPointer( aColor, 3, gl.FLOAT, false, 5 * Float32Array.BYTES_PER_ELEMENT, 2 * Float32Array.BYTES_PER_ELEMENT);    // (x,y) floating point values provided
+    gl.enableVertexAttribArray( aColor);   
+}
+
+// EXECUTION: Code executes starting here when we launch this file
+window.onload = function init()
+{
+    canvas = document.getElementById( "gl-canvas" );
+
+    //
+    //   Grab the section of the screen for drawing.  
+    //   All graphic output is within the canvas
+    //
+    
+    gl = canvas.getContext('webgl2');
+    if (!gl) { alert( "WebGL 2.0 isn't available" ); }
+
+    program = initShaders( gl, "vertex-shader", "fragment-shader" );
+    gl.useProgram( program );
+    initializePoints();
+    initializeGPUBuffers();
+
+    gl.viewport( 0, 0, canvas.width, canvas.height ); // 
+    gl.clearColor( 0.0, 0.0, 0.0, 1.0 );    // Format: R, G, B, A  Normalized [0.0,1.0]   
+    gl.clear( gl.COLOR_BUFFER_BIT );     // Clear all pixels in the framebuffer
+
+    gl.lineWidth(10);
+    gl.drawArrays( gl.TRIANGLE_FAN, 0, 22);
+    gl.drawArrays( gl.TRIANGLE_STRIP, 22, 42);
+    gl.drawArrays( gl.POINTS, 64, 9);
+};
+
+
+</script>
+
+</html>
